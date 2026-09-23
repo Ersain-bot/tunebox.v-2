@@ -529,7 +529,7 @@ function updateSeek(){
   }
 }
 function updatePlayerUI(){
-  const t=getTrack(play.cur);
+  const track=getTrack(play.cur);
   $('#mini').classList.toggle('show',!!t);
   document.body.classList.toggle('paused',A.paused);
   const pi=A.paused?ic('play'):ic('pause');
@@ -543,15 +543,18 @@ function updatePlayerUI(){
   $('#loopChip').classList.toggle('on',meta.loopSingle);
   $('#sleepChip').innerHTML=ic('moon')+'<span>'+sleepLabel()+'</span>';
   $('#sleepChip').classList.toggle('on',!!sleepTimer);
-  if(t){
-    const key='trk:'+t.id;
-    $('#miniCover').innerHTML=`<span class="cover" style="${coverStyle(t.name,key)}">${imgs.get(key)?'':esc(initial(t.name))}</span>`;
-    $('#miniTitle').textContent=t.name;
-    $('#miniSub').textContent=artistOf(t);
-    const bc=$('#shCover'); bc.setAttribute('style',coverStyle(t.name,key)); bc.textContent=imgs.get(key)?'':initial(t.name);
-    $('#shTitle').textContent=t.name; $('#shArtist').textContent=artistOf(t); $('#shArtist').dataset.name=artistOf(t);
-    $('#shCtx').textContent=t('playingFrom')+' '+ctxName(play.ctx);
-  } else if($('#sheet').classList.contains('open')) closePlayer();
+  if(track){
+  const key='trk:'+track.id;
+  $('#miniCover').innerHTML=`<span class="cover" style="${coverStyle(track.name,key)}">${imgs.get(key)?'':esc(initial(track.name))}</span>`;
+  $('#miniTitle').textContent=track.name;
+  $('#miniSub').textContent=artistOf(track);
+  const bc=$('#shCover');
+  bc.setAttribute('style',coverStyle(track.name,key));
+  bc.textContent=imgs.get(key)?'':initial(track.name);
+  $('#shTitle').textContent=track.name;
+  $('#shArtist').textContent=artistOf(track);
+  $('#shArtist').dataset.name=artistOf(track);
+  $('#shCtx').textContent=t('playingFrom')+' '+ctxName(play.ctx);
 }
 function markPlaying(){
   document.querySelectorAll('.row[data-id]').forEach(r=>r.classList.toggle('now',r.dataset.id===play.cur));
@@ -927,14 +930,32 @@ function act(a,d){
     case 'more': openMore(d.id,d.ctx);break;
     case 'swipeadd': closeSwipes(); addToId=d.id; drawAddTo(); break;
     case 'swipedel':{
-      closeSwipes();
-      if(d.ctx==='lib'){
-        const t=getTrack(d.id); if(!t)return;
-        confirmBox('Delete this song?','\u201c'+t.name+'\u201d will be removed from Tunebox and from all playlists.','Delete',()=>deleteSong(d.id));
-      } else {
-        const p=getPl(d.ctx); if(p){ p.ids=p.ids.filter(x=>x!==d.id); saveMeta(); refreshQueue(); render(); toast(t('removedFromPlaylist')); }
-      }
-      break;}
+  closeSwipes();
+
+  if(d.ctx==='lib'){
+    const track=getTrack(d.id);
+    if(!track)return;
+
+    confirmBox(
+      'Delete this song?',
+      '\u201c'+track.name+'\u201d will be removed from Tunebox and from all playlists.',
+      'Delete',
+      ()=>deleteSong(d.id)
+    );
+  } else {
+    const playlist=getPl(d.ctx);
+
+    if(playlist){
+      playlist.ids=playlist.ids.filter(x=>x!==d.id);
+      saveMeta();
+      refreshQueue();
+      render();
+      toast(t('removedFromPlaylist'));
+    }
+  }
+
+  break;
+}
     case 'close': closeModal();break;
     case 'hideinstall': meta.hideInstall=true;saveMeta();render();break;
     case 'hidestoragewarn': ui.hideStorageWarn=true; render(); break;
